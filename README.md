@@ -98,6 +98,8 @@ pm2 startup
 ## 6. Purchase Namecheap Domain
 - Purchase domain from namecheap and then set the Custom DNS to each of the `NS` records from Route53
 ![namecheap](assets/namecheap-dns.png)
+- Connect your Route 53 to Namecheap. Copy the public "IPv4 Public IP" of your EC2 Instance. Hit create record set button and create 2 records below. One set name as empty while latter prefi with *. Copy into value the IPv4 Public IP address into reach
+![recordset](assets/recordset.png)
 
 ## 7. Setup Nginx and HTTPS
 - SSH into EC2 Instance and setup nginx webserver
@@ -108,7 +110,6 @@ sudo apt-get install nginx
 ```
 sudo apt-get install software-properties-common
 sudo add-apt-repository ppa:certbot/certbot
-sudo apt-get update
 sudo apt-get install python-certbot-nginx
 ```
 - Make the certificate with the given domain names you have purchased. It may prompt for email
@@ -125,6 +126,7 @@ cd /etc/nginx/sites-available/
 touch node
 cd
 sudo /etc/nginx/sites-available/node
+sudo vim /etc/nginx/sites-available/node
 ```
 - Paste the following code in the file and replace example.com with your purchased domain and 3000 with your Node port
 ```
