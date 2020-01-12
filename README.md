@@ -54,6 +54,8 @@ git push origin master
 - Setup security groups including HTTP port 80 and HTTPS
 ![security](assets/security.png)
 - Create instance and create name of private key and download (you will need this to ssh login to your cloud instance)
+- Create Elastic IP and associate to your instance. This will keep a fixed public IP address for your instance
+![elastic](assets/elasticIP.png)
 
 ## 3. SSH into EC2 Instance
 - Find and select your running EC2 instance and click Connect then follow the instructions
