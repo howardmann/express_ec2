@@ -1,26 +1,28 @@
-# Setup NodeJS Express App, AWS EC2, AWS Route53, Namecheap Domain, HTTPS
+# Setup NodeJS App, Docker, AWS EC2, AWS Route53, Namecheap Domain, Nginx HTTPS
 
-1. Create Node app and deploy to Github
+1. Create Node App with Dockerfile and deploy to Github
 2. Create EC2 Instance
 3. SSH into EC2 Instance
 4. Setup and Install EC2 Dependencies
 5. Create Route 53
 6. Purchase Namecheap Domain
 7. Setup Nginx and HTTPS
+8. Potential troubleshooting
 
 ## 1. Create Node app and deploy to Github
-Create a simple node express app and deploy to github
-
+Create a simple node express app
 ```bash
 mkdir express_ec2
 cd express_ec2 
-touch index.js
+mkdir src
+touch src/index.js
 npm init -y
 npm i --save express
 echo node_modules >> .gitignore
 ```
 
 ```javascript
+// src/index.js
 let express = require('express')
 const PORT = process.env.PORT || 3000
 
@@ -39,12 +41,40 @@ app.listen(PORT, () => {
   console.log(`Listening on PORT ${PORT}`);
 })
 ```
+Create Dockerfile
+```Dockerfile
+# // Dockerfile
 
+# Select node version and set working directory
+FROM node:8-alpine
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+
+# Install app dependencies
+COPY package.json /usr/src/app
+RUN npm install
+
+# Bundle app source
+COPY . /usr/src/app
+
+# Expose publc port and run npm command
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+Deploy to github repo
 ```bash
 git add .
 git commit -m "initial commit"
 git remote add origin "github repo"
 git push origin master
+```
+Test locally by building docker image (check Docker desktop app is running)
+```
+docker build . -t <YOUR_APP_NAME>
+```
+Test locally by running the app. Expose port 3000 (we will later use Nginx reverse proxy to send HTTPS port 80 requests to localhost:3000)
+```
+docker run -p 3000:3000 <YOUR_APP_NAME>
 ```
 
 ## 2. Create EC2 Instance
@@ -63,6 +93,43 @@ git push origin master
 - To asssist workflow create a folder named ssh in your root directory and include in .gitignore. You can keep your private key here and a textline of the ssh script. Then come back to this folder whenever you need to ssh
 
 ## 4. Setup and Install EC2 Dependencies
+- SSH into instance
+- Install docker into root directory
+```
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+```
+- Run docker without sudo in ubuntu
+```
+cat /etc/passwd | grep ubuntu
+sudo usermod -aG docker ubuntu
+```
+- Exit and ssh back in and check you can run docker without sudo
+```
+docker ps
+```
+- Same as what we did locally, create a docker image
+```
+docker build . -t <YOUR_APP_NAME>
+```
+- This time run it in background detatched mode so it continues running after you exit
+```
+docker run -d -p 3000:3000 -t <YOUR_APP_NAME>
+```
+- To get the container id
+```
+docker ps
+```
+- To see container logs
+```
+docker logs <YOUR_CONTAINER_ID>
+```
+- To stop the container
+```
+docker stop <YOUR_CONTAINER_ID>
+```
+
+### Note: optional instructions below if you do not want to use Docker
 - Install nvm
 ```
 sudo apt-get update
@@ -125,9 +192,7 @@ sudo rm /etc/nginx/sites-enabled/default
 - Create new file 
 ```
 cd /etc/nginx/sites-available/
-touch node
-cd
-sudo /etc/nginx/sites-available/node
+sudo touch node
 sudo vim /etc/nginx/sites-available/node
 ```
 - Paste the following code in the file and replace example.com with your purchased domain and 3000 with your Node port
@@ -166,6 +231,15 @@ sudo ln -s /etc/nginx/sites-available/node /etc/nginx/sites-enabled/node
 ```
 sudo service nginx restart
 ```
+- If nginx error due to port 80 already in use. Find, kill and restart nginx
+```
+sudo fuser -k 80/tcp
+sudo nginx start
+```
+
+## 8. Potential troubleshooting
+- Unable to ssh with warning `"WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED"` (Link here)[https://stackabuse.com/how-to-fix-warning-remote-host-identification-has-changed-on-mac-and-linux/]
+
 
 ### Reference
 [Link to helpful setup tutorial article](https://shaneoneill.io/2018/10/21/setting-up-an-https-site-using-nodejs-aws-ec2-nginx-lets-encrypt-and-namecheap/)
